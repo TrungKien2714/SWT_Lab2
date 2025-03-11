@@ -7,6 +7,7 @@ package dal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Connection;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -25,6 +26,15 @@ import model.View;
  * @author Aus TUF GAMAING
  */
 public class DAOforAdmin extends DBContext {
+
+    Connection connection;
+
+    public DAOforAdmin(Connection connection) {
+        this.connection = connection;
+    }
+
+    public DAOforAdmin() {
+    }
 
     public List<UserDetail> getAllUserByRole(String role) {
         List<UserDetail> users = new ArrayList<>();
@@ -110,62 +120,99 @@ public class DAOforAdmin extends DBContext {
         }
     }
 
-    public void editAcc(String fullname, String phonenumber, String address, String role, int id) {
-        String sql = "UPDATE " + role + "\n"
-                + "SET full_name = ?, phone_number = ?, address = ?\n"
-                + "WHERE user_id = ?";
-        try {
-            PreparedStatement pre = connection.prepareStatement(sql);
+    public boolean editAcc(String fullname, String phonenumber, String address, String role, int id) throws SQLException {
+        // Validate input to avoid null/empty values
+        if (fullname == null || fullname.trim().isEmpty()
+                || phonenumber == null || phonenumber.trim().isEmpty()
+                || address == null || address.trim().isEmpty()
+                || role == null || role.trim().isEmpty()) {
+            throw new IllegalArgumentException("All fields must be provided and non-empty.");
+        }
+
+        // Validate role to prevent SQL injection
+        if (!role.equalsIgnoreCase("customer") && !role.equalsIgnoreCase("admin")
+                && !role.equalsIgnoreCase("staff") && !role.equalsIgnoreCase("manager")
+                && !role.equalsIgnoreCase("seller")) {
+            throw new IllegalArgumentException("Invalid role provided.");
+        }
+
+        String sql = "UPDATE " + role + " SET full_name = ?, phone_number = ?, address = ? WHERE user_id = ?";
+
+        try (PreparedStatement pre = connection.prepareStatement(sql)) {
             pre.setString(1, fullname);
             pre.setString(2, phonenumber);
             pre.setString(3, address);
             pre.setInt(4, id);
 
-            pre.executeUpdate();
-
+            int rowsAffected = pre.executeUpdate();
+            return rowsAffected > 0; // Return true if update happened
         } catch (SQLException ex) {
             Logger.getLogger(DAOforAdmin.class.getName()).log(Level.SEVERE, null, ex);
+            throw ex; // Re-throw for caller to handle
         }
     }
 
-    public void addNewAcc(String fullname, String email, String phonenumber, String password, String role) {
-        String sql;
-        sql = "INSERT INTO user (email, password, role) VALUES (?, ?, ?)";
-        try {
-            PreparedStatement pre = connection.prepareStatement(sql);
-
-            pre.setString(1, email);
-            pre.setString(2, password);
-            pre.setString(3, role);
-            pre.executeUpdate();
-        } catch (SQLException ex) {
-            Logger.getLogger(DAOforAdmin.class.getName()).log(Level.SEVERE, null, ex);
+    public boolean addNewAcc(String fullname, String email, String phonenumber, String password, String role) throws SQLException {
+        if (fullname == null || fullname.trim().isEmpty()
+                || email == null || email.trim().isEmpty()
+                || phonenumber == null || phonenumber.trim().isEmpty()
+                || password == null || password.trim().isEmpty()
+                || role == null || role.trim().isEmpty()) {
+            throw new IllegalArgumentException("All fields must be provided and non-empty.");
         }
 
-        sql = "select id from user where email = '" + email + "'";
-        int id = 0;
+        String insertUserSQL = "INSERT INTO user (email, password, role) VALUES (?, ?, ?)";
+        String getIdSQL = "SELECT id FROM user WHERE email = ?";
+        String insertDetailSQL;
+
+        // Validate role to prevent SQL injection (hardcoded acceptable roles)
+        if (!role.equalsIgnoreCase("customer") && !role.equalsIgnoreCase("admin")
+                && !role.equalsIgnoreCase("staff") && !role.equalsIgnoreCase("manager")
+                && !role.equalsIgnoreCase("seller")) {
+            throw new IllegalArgumentException("Invalid role provided.");
+        }
+
+        insertDetailSQL = "INSERT INTO " + role + " (user_id, phone_number, full_name, address, status) VALUES (?, ?, ?, ?, 1)";
+
+        connection.setAutoCommit(false); // Start transaction
         try {
-            PreparedStatement pre = connection.prepareStatement(sql);
-            ResultSet rs = pre.executeQuery();
-            while (rs.next()) {
-                id = rs.getInt("id");
+            // 1. Insert into user
+            try (PreparedStatement preUser = connection.prepareStatement(insertUserSQL)) {
+                preUser.setString(1, email);
+                preUser.setString(2, password);
+                preUser.setString(3, role);
+                preUser.executeUpdate();
             }
 
-        } catch (SQLException ex) {
-            Logger.getLogger(DAOforAdmin.class.getName()).log(Level.SEVERE, null, ex);
-        }
+            // 2. Get user id
+            int id = 0;
+            try (PreparedStatement preId = connection.prepareStatement(getIdSQL)) {
+                preId.setString(1, email);
+                try (ResultSet rs = preId.executeQuery()) {
+                    if (rs.next()) {
+                        id = rs.getInt("id");
+                    } else {
+                        throw new SQLException("User ID not found after insertion.");
+                    }
+                }
+            }
 
-        sql = "INSERT INTO " + role + " (user_id, phone_number, full_name, address, status) VALUES (?, ?, ?, ?, 1)";
-        try {
-            PreparedStatement pre = connection.prepareStatement(sql);
+            // 3. Insert into role-specific table
+            try (PreparedStatement preDetail = connection.prepareStatement(insertDetailSQL)) {
+                preDetail.setInt(1, id);
+                preDetail.setString(2, phonenumber);
+                preDetail.setString(3, fullname);
+                preDetail.setString(4, ""); // address empty
+                preDetail.executeUpdate();
+            }
 
-            pre.setInt(1, id);
-            pre.setString(2, phonenumber);
-            pre.setString(3, fullname);
-            pre.setString(4, "");
-            pre.executeUpdate();
+            connection.commit(); // All succeeded
+            return true;
         } catch (SQLException ex) {
-            Logger.getLogger(DAOforAdmin.class.getName()).log(Level.SEVERE, null, ex);
+            connection.rollback(); // Rollback on error
+            throw ex; // Re-throw for caller to handle
+        } finally {
+            connection.setAutoCommit(true); // Restore default auto-commit
         }
     }
 
@@ -316,5 +363,41 @@ public class DAOforAdmin extends DBContext {
         }
 
         return sts_list;
+    }
+
+    public boolean deleteUserAccount(int id, String role) throws SQLException {
+        // Validate role to avoid SQL injection risk
+        if (!role.equalsIgnoreCase("customer") && !role.equalsIgnoreCase("admin")
+                && !role.equalsIgnoreCase("staff") && !role.equalsIgnoreCase("manager")
+                && !role.equalsIgnoreCase("seller")) {
+            throw new IllegalArgumentException("Invalid role provided.");
+        }
+
+        String deleteFromRoleTableSQL = "DELETE FROM " + role + " WHERE user_id = ?";
+        String deleteFromUserTableSQL = "DELETE FROM user WHERE id = ?";
+
+        connection.setAutoCommit(false); // Start transaction
+        try {
+            // 1. Delete from role-specific table
+            try (PreparedStatement preRole = connection.prepareStatement(deleteFromRoleTableSQL)) {
+                preRole.setInt(1, id);
+                preRole.executeUpdate();
+            }
+
+            // 2. Delete from user table
+            try (PreparedStatement preUser = connection.prepareStatement(deleteFromUserTableSQL)) {
+                preUser.setInt(1, id);
+                preUser.executeUpdate();
+            }
+
+            connection.commit(); // Both deletions succeeded
+            return true;
+        } catch (SQLException ex) {
+            connection.rollback(); // Rollback on error
+            Logger.getLogger(DAOforAdmin.class.getName()).log(Level.SEVERE, null, ex);
+            throw ex; // Re-throw for caller to handle
+        } finally {
+            connection.setAutoCommit(true); // Restore auto-commit
+        }
     }
 }

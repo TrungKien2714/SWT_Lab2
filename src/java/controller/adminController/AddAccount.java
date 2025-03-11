@@ -12,7 +12,10 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -95,7 +98,11 @@ public class AddAccount extends HttpServlet {
             }
         }
 
-        acc_dao.addNewAcc(fullname, email, phonenumber, password, role);
+        try {
+            acc_dao.addNewAcc(fullname, email, phonenumber, password, role);
+        } catch (SQLException ex) {
+            Logger.getLogger(AddAccount.class.getName()).log(Level.SEVERE, null, ex);
+        }
 
         response.sendRedirect("AccountList?role=" + role);
     }
