@@ -1,4 +1,3 @@
-
 package dal;
 
 import model.Customer;
@@ -13,6 +12,16 @@ import model.User;
  * @author dtam6
  */
 public class CustomerDAO extends DBContext {
+
+    Connection connection;
+
+    public CustomerDAO() {
+    }
+
+    public CustomerDAO(Connection connection) {
+        this.connection = connection;
+    }
+
     public boolean checkPhoneNumberExist(String phoneNumber) {
         String sql = "SELECT * FROM Customer WHERE phone_number = ?";
         try {
@@ -25,7 +34,8 @@ public class CustomerDAO extends DBContext {
         }
         return false;
     }
-public boolean insertCustomer(Customer customer) {
+
+    public boolean insertCustomer(Customer customer) {
         String sql = "INSERT INTO Customer (user_id, full_name, phone_number, address, status) VALUES (?, ?, ?, ?, ?)";
         try {
             PreparedStatement ps = connection.prepareStatement(sql);
@@ -34,8 +44,10 @@ public boolean insertCustomer(Customer customer) {
             ps.setString(3, customer.getPhoneNumber());
             ps.setString(4, customer.getAddress());
             ps.setInt(5, customer.getStatus());
-            ps.executeUpdate();
-            return true;
+
+            int rowsAffected = ps.executeUpdate();
+
+            return rowsAffected > 0;
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -127,6 +139,7 @@ public boolean insertCustomer(Customer customer) {
         }
         return customer;
     }
+
     // Xóa khách hàng: cập nhật trạng thái của khách hàng thành 0 nếu password khớp trong bảng User
     public int deleteCustomer(int customerId, String password) {
         int n = 0;
@@ -159,6 +172,7 @@ public boolean insertCustomer(Customer customer) {
         }
         return n;
     }
+
     public boolean checkOldPassword(int userId, String oldPassword) {
         String sql = "SELECT password FROM User WHERE id = ?";
         try (PreparedStatement pre = connection.prepareStatement(sql)) {
