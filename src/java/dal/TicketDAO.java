@@ -155,54 +155,42 @@ public boolean deleteTicketDetail(int ticketId) {
 
 
     
-    public void updateTicketDetail(int ticketId, Integer luggageType, 
-                                  String phoneNumber, String fullName, 
-                                  String address) {
+    public void updateTicketDetail(int ticketId, Integer luggageType, String phoneNumber, String fullName, String address) {
+    if (luggageType == null) {
+        throw new IllegalArgumentException("Luggage type must not be null");
+    }
+    if (phoneNumber == null) {
+        throw new IllegalArgumentException("Phone number must not be null");
+    }
+    if (fullName == null) {
+        throw new IllegalArgumentException("Full name must not be null");
+    }
+    if (address == null) {
+        throw new IllegalArgumentException("Address must not be null");
+    }
+
     String sql = "UPDATE ticket t " +
-             "JOIN transaction tr ON t.transaction_id = tr.id " +
-             "JOIN customer c ON tr.customer_id = c.id " +
-             "SET t.luggage_type = ?, " +
-             "c.phone_number = ?, c.full_name = ?, c.address = ? " + 
-             "WHERE t.id = ?";
+            "JOIN transaction tr ON t.transaction_id = tr.id " +
+            "JOIN customer c ON tr.customer_id = c.id " +
+            "SET t.luggage_type = ?, " +
+            "c.phone_number = ?, c.full_name = ?, c.address = ? " +
+            "WHERE t.id = ?";
 
-
-    try {
-        PreparedStatement stmt = connection.prepareStatement(sql);
-
-        if (luggageType != null) {
-            stmt.setInt(1, luggageType);
-        } else {
-            stmt.setNull(1, java.sql.Types.INTEGER);
-        }
-
-        if (phoneNumber != null) {
-            stmt.setString(2, phoneNumber);
-        } else {
-            stmt.setNull(2, java.sql.Types.VARCHAR);
-        }
-
-        if (fullName != null) {
-            stmt.setString(3, fullName);
-        } else {
-            stmt.setNull(3, java.sql.Types.VARCHAR);
-        }
-
-        if (address != null) {
-            stmt.setString(4, address);
-        } else {
-            stmt.setNull(4, java.sql.Types.VARCHAR);
-        }
+    try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+        stmt.setInt(1, luggageType);
+        stmt.setString(2, phoneNumber);
+        stmt.setString(3, fullName);
+        stmt.setString(4, address);
         stmt.setInt(5, ticketId);
-        
-        int rowsUpdated = stmt.executeUpdate();
-System.out.println("Rows updated: " + rowsUpdated);
 
-        
+        int rowsUpdated = stmt.executeUpdate();
+        System.out.println("Rows updated: " + rowsUpdated);
+
     } catch (Exception e) {
         e.printStackTrace();
     }
+}
 
-    }
     
     
     

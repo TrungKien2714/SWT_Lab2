@@ -29,14 +29,13 @@ import lombok.Setter;
 
 public class TicketDetail {
 
-    
     private int id;
     private int status;
+    private int luggageType;
     private int routeId;
     private int seatId;
     private int staffId;
     private int transactionId;
-    private int luggageType;
     private BigDecimal amountPaid;
     private String phoneNumber;
     private String fullName;
