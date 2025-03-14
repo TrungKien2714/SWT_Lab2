@@ -3,8 +3,9 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/D:/SP25/SWT301/TraTra/SWT_Lab2/test/dal/SellerDAOTest.java</file>
-            <file>file:/D:/SP25/SWT301/TraTra/SWT_Lab2/src/java/dal/SellerDAO.java</file>
+            <file>file:/D:/SP25/SWT301/Test_Lab2/SWT_Lab2/src/java/dal/SellerDAO.java</file>
+            <file>file:/D:/SP25/SWT301/Test_Lab2/SWT_Lab2/test/dal/SellerDAOTest_UpdateRoute.java</file>
+            <file>file:/D:/SP25/SWT301/Test_Lab2/SWT_Lab2/test/dal/SellerDAOTest_DeleteRoute.java</file>
         </group>
     </open-files>
 </project-private>
