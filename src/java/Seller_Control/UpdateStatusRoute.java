@@ -1,6 +1,6 @@
 
 
-package seller;
+package Seller_Control;
 
 import java.io.IOException;
 import java.io.PrintWriter;

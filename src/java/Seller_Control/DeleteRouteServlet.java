@@ -1,5 +1,5 @@
 
-package seller;
+package Seller_Control;
 
 import dal.SellerDAO;
 import java.io.IOException;
